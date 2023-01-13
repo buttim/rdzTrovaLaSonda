@@ -32,11 +32,12 @@ const static intProp_t intProps[]={
 	{ 20,"vBatType", 1, [](Proto *p,int val) {p->battType=val;}, false }
 };
 
-const char Proto::ver[]="2.30", Proto::appName[]="rdzTrovaLaSonda";
+const char Proto::ver[]="0.90", 
+  Proto::appName[]="rdzTrovaLaSonda"; //max length 15
 
 static const char *sondeTypes[]={ "RS41","M20", "M10", "PILOT", "DFM" };
 
-const float bands[]={
+const float bands[]={ //kHz
 	2.6,3.1,3.9,5.2,6.3,7.8,10.4,12.5, 15.6,20.8,25.0,
 	31.3,41.7,50.0,62.5,83.3,100.0,125.0,166.7,200.0
 };
@@ -222,14 +223,14 @@ void Proto::onData(const uint8_t *buffer, size_t size) {
 }
 
 void Proto::sondePos(float vBatt,String id,float lat,float lon,float alt,float vel,int rssi) {
-	debugPrintf("1/%s/%.3f/%s/%.5f/%.5f/%.1f/%.1f/%.1f/%d/0/0/0/%d/%d/0/0/0/%s/o\r\n",
+	debugPrintf("1/%s/%.3f/%s/%.6f/%.6f/%.1f/%.1f/%.1f/%d/0/0/0/%d/%d/0/0/0/%s/o\r\n",
 		nameFromSondeType(sondeType),freq,
-		id.c_str(),lat,lon,alt,vel,-rssi/2,
+		id.c_str(),lat,lon,alt,vel,-rssi/2.0,
 		(int)((vBatt-battMin)*100/(battMax-battMin)),(int)vBatt,
 		mute?1:0,ver);
-	serial->printf("1/%s/%.3f/%s/%.5f/%.5f/%.1f/%.1f/%.1f/%d/0/0/0/%d/%d/0/0/0/%s/o\r\n",
+	serial->printf("1/%s/%.3f/%s/%.6f/%.6f/%.1f/%.1f/%.1f/%d/0/0/0/%d/%d/0/0/0/%s/o\r\n",
 		nameFromSondeType(sondeType),freq,
-		id.c_str(),lat,lon,alt,vel,-rssi/2,
+		id.c_str(),lat,lon,alt,vel,-rssi/2.0,
 		(int)((vBatt-battMin)*100/(battMax-battMin)),(int)vBatt,
 		mute?1:0,ver);
 	tLastBTMessage=millis();
@@ -238,12 +239,12 @@ void Proto::sondePos(float vBatt,String id,float lat,float lon,float alt,float v
 void Proto::sondeNoPos(float vBatt,String id,int rssi) {
 	debugPrintf("2/%s/%.3f/%s/%.1f/%d/0/%d/%d/%s/o\r\n",
 		nameFromSondeType(sondeType),freq,
-		id.c_str(),-rssi/2,
+		id.c_str(),-rssi/2.0,
 		(int)((vBatt-battMin)*100/(battMax-battMin)),(int)vBatt,
 		mute?1:0,ver);
 	serial->printf("2/%s/%.3f/%s/%.1f/%d/0/%d/%d/%s/o\r\n",
 		nameFromSondeType(sondeType),freq,
-		id.c_str(),-rssi/2,
+		id.c_str(),-rssi/2.0,
 		(int)((vBatt-battMin)*100/(battMax-battMin)),(int)vBatt,
 		mute?1:0,ver);
 }

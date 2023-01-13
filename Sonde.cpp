@@ -12,7 +12,7 @@
 #include "MP3H.h"
 #endif
 #include "SX1278FSK.h"
-#include "Display.h"
+//#include "Display.h"
 #include <Wire.h>
 
 uint8_t debug = 255-8-16;
@@ -111,7 +111,9 @@ void Sonde::defaultConfig() {
 	config.button2_axp = 0;
 	config.norx_timeout = 20;
 	config.screenfile = 1;
+#ifdef __DISPLAY__
 	config.tft_spifreq = SPI_DEFAULT_FREQ;
+#endif
 	if(initlevels[16]==0) {
 		config.oled_sda = 4;
 		config.oled_scl = 15;
@@ -463,6 +465,7 @@ void Sonde::setup() {
 extern void flashLed(int ms);
 
 void Sonde::receive() {
+#ifdef __DISPLAY__
 	uint16_t res = 0;
 	SondeInfo *si = &sondeList[rxtask.currentSonde];
 	switch(si->type) {
@@ -540,8 +543,9 @@ void Sonde::receive() {
 	res = (action<<8) | (res&0xff);
 	// let waitRXcomplete resume...
 	rxtask.receiveResult = res;
+#endif
 }
-
+#ifdef __DISPLAY__
 // return (action<<8) | (rxresult)
 uint16_t Sonde::waitRXcomplete() {
 	uint16_t res=0;
@@ -681,7 +685,7 @@ uint8_t Sonde::updateState(uint8_t event) {
 	}
 	return 0xFF;
 }
-
+#endif
 void Sonde::clearAllData(SondeInfo *si) {
 	// set everything to 0
 	memset(&(si->d), 0, sizeof(SondeData));
@@ -689,7 +693,7 @@ void Sonde::clearAllData(SondeInfo *si) {
 	si->d.lat = si->d.lon = si->d.alt = si->d.vs = si->d.hs = si->d.dir = NAN;
 	si->d.temperature = si->d.tempRHSensor = si->d.relativeHumidity = si->d.pressure = si->d.batteryVoltage = NAN;
 }
-
+#ifdef __DISPLAY__
 void Sonde::updateDisplayPos() {
 	disp.updateDisplayPos();
 }
@@ -734,7 +738,7 @@ void Sonde::dispsavectlON() {
 void Sonde::dispsavectlOFF(int rxactive) {
 	disp.dispsavectlOFF(rxactive);
 }
-
+#endif
 
 SondeType Sonde::realType(SondeInfo *si) {
 	if(TYPE_IS_METEO(si->type) && si->d.subtype>0 ) { return si->d.subtype==1 ? STYPE_M10:STYPE_M20; }

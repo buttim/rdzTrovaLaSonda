@@ -3,10 +3,10 @@
 #include <Preferences.h>
 #include "MySondyGOProto.h"
 
-#define LED         25
+/*#define LED         25
 #define BUZZER      4
 #define SDA         21
-#define SCL         22
+#define SCL         22*/
 
 #define RADIO_SCLK_PIN               5
 #define RADIO_MISO_PIN              19
@@ -15,8 +15,6 @@
 #define RADIO_DIO0_PIN              26
 #define RADIO_DIO1_PIN              33
 #define RADIO_DIO2_PIN              32
-#define RADIO_DIO4_PIN              14  //needs to be soldered if used !
-#define RADIO_DIO5_PIN              13  //needs to be soldered if used !
 #define RADIO_RST_PIN               23
 #define RADIO_BUSY_PIN              32
 

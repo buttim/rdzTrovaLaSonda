@@ -345,12 +345,13 @@ public:
 
 	/* new interface */
 	void setup();
+#ifdef DISPLAY
 	void receive();
 	uint16_t waitRXcomplete();
-
+#endif
 	SondeInfo *si();
 	void clearAllData(SondeInfo *si);
-
+#ifdef DISPLAY
 	uint8_t timeoutEvent(SondeInfo *si);
 	uint8_t updateState(uint8_t event);
 
@@ -365,7 +366,7 @@ public:
 	void clearDisplay();
         void dispsavectlON();
         void dispsavectlOFF(int rxactive);
-
+#endif
 	void setIP(String ip, bool isAP);
 };
 

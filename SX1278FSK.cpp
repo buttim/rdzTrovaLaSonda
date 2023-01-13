@@ -12,7 +12,7 @@
 #include "SX1278FSK.h"
 #include "SPI.h"
 #include "Sonde.h"
-#include "Display.h"
+//#include "Display.h"
 
 
 #define SPI_MUTEX_LOCK() \

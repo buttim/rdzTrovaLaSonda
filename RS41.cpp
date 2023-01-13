@@ -789,6 +789,7 @@ int RS41::decode41(byte *data, int maxlen)
 		case '{': // pos
 			posrs41(data+p, len, 0);
 			break;
+#ifdef DECODE_TEMP
 		case 'z': // 0x7a is character z - 7A-MEAS temperature and humidity frame
          {
       		uint32_t tempMeasMain = getint24(data, 560, p+0);
@@ -840,9 +841,7 @@ int RS41::decode41(byte *data, int maxlen)
             }
          }
          break;
-
-
-
+#endif
 		default:
 			break;
 		}}

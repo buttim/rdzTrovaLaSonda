@@ -9,7 +9,7 @@
 #define debugPrintf(...) fprintf (stderr, __VA_ARGS__)
 #define debugPrint(s) fputs(s,stderr)
 #define debugPrintln(s) { fputs(s,stderr); fputc('\n',stderr); }
-
+const char *nameFromSondeType(unsigned n);
 class ProtoUser {
 public:
 	virtual void mute(bool on)=0;
@@ -40,7 +40,7 @@ public:
 	bool mute=false;
 	char callsign[CALLSIGN_LENGTH+1]="MYCALL";
 	float freq;
-	int sondeType,lcd,lcdOn,blu,baud,com,oledSDA,oledSCL,oledRST,
+	short sondeType,lcd,lcdOn,blu,baud,com,oledSDA,oledSCL,oledRST,
 		ledPin,RS41Band,M20Band,M10Band,PilotBand,DFMBand,freqOffs,
 		battPin,battMin,battMax,battType,nameType,buzzPin;
 
