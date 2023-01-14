@@ -32,8 +32,7 @@ const static intProp_t intProps[]={
 	{ 20,"vBatType", 1, [](Proto *p,int val) {p->battType=val;}, false }
 };
 
-const char Proto::ver[]="0.90", 
-  Proto::appName[]="rdzTrovaLaSonda"; //max length 15
+const char Proto::appName[]="rdzTrovaLaSonda"; //max length 15
 
 static const char *sondeTypes[]={ "RS41","M20", "M10", "PILOT", "DFM" };
 
@@ -78,29 +77,20 @@ void Proto::setDefaults() {
   preferences.putFloat("freq",freq);
   preferences.putInt("sondeType",sondeType);
   preferences.end();
-	protoUser->freq(freq);
-	protoUser->type(sondeType);
 }
 
 void Proto::loadProps() {
   preferences.begin(appName,true);
 	for (unsigned i=0;i<sizeof intProps/sizeof(*intProps);i++) {
-    debugPrintf("%s=",intProps[i].name);
 		int val=preferences.getInt(intProps[i].name,intProps[i].defVal);
 		intProps[i].set(this,val);
-    debugPrintf("%d\n",val);
 	}
-  debugPrintln("===================");
   preferences.getString("callsign",callsign,sizeof callsign);
   freq=preferences.getFloat("freq",403.0);
   sondeType=preferences.getInt("sondeType",0);
   preferences.end();
 	if (freq!=freq || freq==0) //not a number
 		setDefaults();
-	else {
-		protoUser->freq(freq);
-		protoUser->type(sondeType);
-	}
 }
 
 void Proto::sendSettings() {
@@ -108,7 +98,7 @@ void Proto::sendSettings() {
 	serial->printf("3/%s/%.3f/%d/%d/%d/%d/%d/%d/%d/%d/%d/%s/%d/%d/%d/%d/%d/%d/%d/%d/%s/o\r\n",
 		nameFromSondeType(sondeType),freq,oledSDA,oledSCL,oledRST,ledPin,
 		RS41Band,M20Band,M10Band,PilotBand,DFMBand,callsign,freqOffs,
-		battPin,battMin,battMax,battType,lcd,nameType,buzzPin,ver);
+		battPin,battMin,battMax,battType,lcd,nameType,buzzPin,protoUser->version());
 	vTaskDelay(100);
 }
 
@@ -150,12 +140,24 @@ void Proto::execCommand(String s) {
     preferences.end();
     return;
   }
+  else if (cmd=="ota") {
+    debugPrintf("INIZIO OTA %s\n",val.c_str());
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    const esp_partition_t *next = esp_ota_get_next_update_partition(running);
+    otaLength=val.toInt();
+    esp_err_t err=esp_ota_begin(next,otaLength,&handleOta);
+    if (err!=ESP_OK) {
+      Serial.printf("Errore esp_ota_begin %d\n",err);
+      return;
+    }
+    otaRunning=true;
+    return;
+  }
   if (cmd=="f") {
     freq=val.toFloat();
     preferences.begin(appName,false);
     preferences.putFloat("freq",freq);
     preferences.end();
-    protoUser->freq(freq);
     //HACKHACK: problema in app Android
     int n=val.indexOf("tipo=");
     if (n<0)
@@ -170,7 +172,6 @@ void Proto::execCommand(String s) {
     preferences.begin(appName,false);
     preferences.putInt("sondeType",sondeType);
     preferences.end();
-    protoUser->type(sondeType);
     return;
   }
 
@@ -199,6 +200,22 @@ void Proto::execCommands(String s) {
 }
 
 void Proto::onData(const uint8_t *buffer, size_t size) {
+  if (otaRunning) {
+    esp_err_t err=esp_ota_write(handleOta,buffer,size);
+    if (err!=ESP_OK) {
+      debugPrintf("Errore esp_ota_write %d\n");
+    }
+    otaProgress+=size;
+    if (otaProgress==otaLength) {
+      esp_ota_end(handleOta);
+      const esp_partition_t *running = esp_ota_get_running_partition(),
+        *next = esp_ota_get_next_update_partition(running);
+
+      esp_ota_set_boot_partition(next);
+      protoUser->restart();
+    }
+    return;
+  }
 	while (size--) {
 		char c=*buffer++;
 
@@ -227,12 +244,12 @@ void Proto::sondePos(float vBatt,String id,float lat,float lon,float alt,float v
 		nameFromSondeType(sondeType),freq,
 		id.c_str(),lat,lon,alt,vel,-rssi/2.0,
 		(int)((vBatt-battMin)*100/(battMax-battMin)),(int)vBatt,
-		mute?1:0,ver);
+		mute?1:0,protoUser->version());
 	serial->printf("1/%s/%.3f/%s/%.6f/%.6f/%.1f/%.1f/%.1f/%d/0/0/0/%d/%d/0/0/0/%s/o\r\n",
 		nameFromSondeType(sondeType),freq,
 		id.c_str(),lat,lon,alt,vel,-rssi/2.0,
 		(int)((vBatt-battMin)*100/(battMax-battMin)),(int)vBatt,
-		mute?1:0,ver);
+		mute?1:0,protoUser->version());
 	tLastBTMessage=millis();
 }
 
@@ -241,12 +258,12 @@ void Proto::sondeNoPos(float vBatt,String id,int rssi) {
 		nameFromSondeType(sondeType),freq,
 		id.c_str(),-rssi/2.0,
 		(int)((vBatt-battMin)*100/(battMax-battMin)),(int)vBatt,
-		mute?1:0,ver);
+		mute?1:0,protoUser->version());
 	serial->printf("2/%s/%.3f/%s/%.1f/%d/0/%d/%d/%s/o\r\n",
 		nameFromSondeType(sondeType),freq,
 		id.c_str(),-rssi/2.0,
 		(int)((vBatt-battMin)*100/(battMax-battMin)),(int)vBatt,
-		mute?1:0,ver);
+		mute?1:0,protoUser->version());
 }
 
 void Proto::init(ProtoUser *protoUser,BluetoothSerial *serial) {
@@ -258,9 +275,9 @@ void Proto::init(ProtoUser *protoUser,BluetoothSerial *serial) {
 void Proto::loop(float vBatt,bool sondePresent,bool posOk,const char *id,float lat,float lon,float alt,float vel,int rssi) {
   if (!sondePresent || id[0]==0) {
     debugPrintf("0/%s/%.3f/%.2f/%d/%d/%d/%s/o\r\n",
-      nameFromSondeType(sondeType),freq,rssi/2.0,map(vBatt,battMin,battMax,0,100),(int)vBatt,mute?1:0,ver);
+      nameFromSondeType(sondeType),freq,rssi/2.0,map(vBatt,battMin,battMax,0,100),(int)vBatt,mute?1:0,protoUser->version());
     serial->printf("0/%s/%.3f/%.2f/%d/%d/%d/%s/o\r\n",
-      nameFromSondeType(sondeType),freq,rssi/2.0,map(vBatt,battMin,battMax,0,100),(int)vBatt,mute?1:0,ver);
+      nameFromSondeType(sondeType),freq,rssi/2.0,map(vBatt,battMin,battMax,0,100),(int)vBatt,mute?1:0,protoUser->version());
     tLastBTMessage=millis();
   }
   else if (posOk)

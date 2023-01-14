@@ -4,6 +4,8 @@
 #include <string.h>
 #include <BluetoothSerial.h>
 #include <Preferences.h>
+#include <esp_partition.h>
+#include <esp_ota_ops.h>
 
 #define CALLSIGN_LENGTH 8
 #define debugPrintf(...) fprintf (stderr, __VA_ARGS__)
@@ -13,13 +15,12 @@ const char *nameFromSondeType(unsigned n);
 class ProtoUser {
 public:
 	virtual void mute(bool on)=0;
-	virtual void type(int sondeType)=0;
-	virtual void freq(float f)=0;
 	virtual void restart()=0;
+	virtual const char *version()=0;
 };
 
 class Proto {
-	static const char ver[],appName[];
+	static const char appName[];
 	ProtoUser *protoUser;
 	BluetoothSerial *serial;
 	enum status_t {IDLE,O,OPEN,CLOSE};
@@ -28,6 +29,7 @@ class Proto {
 	unsigned long tLastBTMessage=0;
 	int incoming;
   Preferences preferences;
+  esp_ota_handle_t handleOta;
 	
 	void loadProps();
 	void sendSettings();
@@ -38,6 +40,8 @@ class Proto {
 	void sondeNoPos(float vBatt,String id,int rssi);
 public:
 	bool mute=false;
+  bool otaRunning=false;
+  int otaProgress=0, otaLength=0;
 	char callsign[CALLSIGN_LENGTH+1]="MYCALL";
 	float freq;
 	short sondeType,lcd,lcdOn,blu,baud,com,oledSDA,oledSCL,oledRST,

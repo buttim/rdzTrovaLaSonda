@@ -23,12 +23,15 @@ extern void bip(int duration=100,int freq=880);
 extern DecoderBase *decoder;
 
 class MyProtoUser : public ProtoUser {
-	void mute(bool on);
-	void type(int sondeType);
-	void freq(float f);
+	void mute(bool on) {
+    if (!on) bip(50,8000);
+  }
 	void restart() {
 		ESP.restart();
 	}
+  const char *version() {
+    return "0.91";
+  }
 };
 
 #endif
