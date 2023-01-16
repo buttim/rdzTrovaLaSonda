@@ -254,7 +254,9 @@ void DFM::finddfname(uint8_t *b)
 		uint32_t v = (st<<20) | (d<<4) | ix;
 		if ( st > (dfmstate.lastfrid>>20) ) {
 			dfmstate.lastfrid = v;
+#if DFM_DEBUG
 			Serial.print(" MAXCH:"); Serial.print(st);
+#endif
 			dfmstate.lastfrcnt = 0;
 		} else if ( st == (dfmstate.lastfrid>>20) ) {
 			/* same id found */
@@ -303,11 +305,14 @@ void DFM::finddfname(uint8_t *b)
 
 	i = 0;
 	while (i<dfmstate.nameregtop && dfmstate.start[i]!=st) i++;
+#if DFM_DEBUG
 	Serial.printf(" %02x:i=%d,top=%d", st, i, dfmstate.nameregtop);
+#endif
 	if (i<dfmstate.nameregtop) {
         	if (ix<=1UL && (dfmstate.cnt[2*i+ix]==0 || dfmstate.dat[2*i+ix]==d)) {
         		dfmstate.dat[2*i+ix] = d;
 			if(dfmstate.cnt[2*i+ix] < 255) dfmstate.cnt[2*i+ix]++;
+#if DFM_DEBUG
 			Serial.print(" ID:");
 			Serial.print(st, HEX);
 			Serial.print("[");
@@ -320,6 +325,7 @@ void DFM::finddfname(uint8_t *b)
 			Serial.print(st);
 			Serial.print(",lastfrid=");
 			Serial.print(dfmstate.lastfrid>>20);
+  #endif
 			if( (dfmstate.cnt[2*i]>DFMIDTHRESHOLD && dfmstate.cnt[2*i+1]>DFMIDTHRESHOLD) ||
 			    (dfmstate.cnt[2*i]>0 && dfmstate.cnt[2*i+1]>0 &&  st == (dfmstate.lastfrid>>20) && (st>>4)>6) ) {
 				if(dfmstate.idcnt0 <= 1) {
@@ -327,16 +333,20 @@ void DFM::finddfname(uint8_t *b)
 					dfmstate.idcnt1 = dfmstate.cnt[2*i+1];
 					dfmstate.nameregok = i;
 					// generate id.....
+#if DFM_DEBUG
 					snprintf(sd->id, 10, "D%d", ((dfmstate.dat[2*i]<<16)|dfmstate.dat[2*i+1])%100000000);
 					Serial.print("\nNEW AUTOID:");
 					Serial.println(sd->id);
+#endif
 					memcpy(sd->ser, sd->id+1, 9);
 					sd->validID = true;
 					sd->subtype = (st>>4)&0x0F;
 					strncpy(sd->typestr, typestr[ (st>>4)&0x0F ], 5);
 				}
 				if(dfmstate.nameregok==i) {
+#if DFM_DEBUG
 					Serial.print(" ID OK");
+#endif
 					// idtime = .... /* TODO */
 				}
 			}
@@ -372,7 +382,9 @@ static float get_Temp() {
 		f1 = dfmstate.meas[5];
 		f2 = dfmstate.meas[6];
 	}
+#if DFM_DEBUG
 	Serial.printf("Meas: %f %f %f\n", f, f1, f2);
+#endif
     // as in autorx / dfm
     float BB0 = 3260.0;       // B/Kelvin, fit -55C..+40C
     float T0 = 25 + 273.15;  // t0=25C
@@ -384,10 +396,13 @@ static float get_Temp() {
     if (f*f1*f2 == 0) R = 0;
     if (R > 0)  T = 1/(1/T0 + 1/BB0 * log(R/R0));
     T =  T - 273.15; // Celsius
+
+#if DFM_DEBUG
     if(T<-100 || T>50) {
 	Serial.printf("Temperature invalid: %f\n", T);
 	return NAN;
     }
+#endif
     return T;
 }
 
@@ -402,7 +417,9 @@ void DFM::decodeCFG(uint8_t *cfg)
 		uint32_t val = (cfg[1]<<12) | (cfg[2]<<4) | cfg[3];
 		uint8_t exp = cfg[0] & 0xF;
 		dfmstate.meas[conf_id] = val / (float)(1<<exp);
+#if DFM_DEBUG
 		Serial.printf("meas %d is %f (%d,%d)\n", conf_id, dfmstate.meas[conf_id], val, exp);
+#endif
 	}
 	// get batt
 	if(si->validID && si->subtype>=0x0A) {
@@ -411,7 +428,9 @@ void DFM::decodeCFG(uint8_t *cfg)
 		if(conf_id == cid) {
 			uint16_t val = cfg[1]<<8 | cfg[2];
 			si->batteryVoltage = val / 1000.0;
+#if DFM_DEBUG
 			Serial.printf("battery: %f\n", si->batteryVoltage);
+#endif
 		}
 	}
 }
@@ -433,8 +452,9 @@ void DFM::decodeDAT(uint8_t *dat)
 {
 	// TODO: Here we need to work on a shadow copy of SondeData in order to prevent concurrent changes while using data in main loop
 	SondeData *si = &(sonde.si()->d);
+#if DFM_DEBUG
 	Serial.print(" DAT["); Serial.print(dat[6]); Serial.print("]: ");
-
+#endif
 	// We handle this case already here, because we need to update dfmstate.datesec before the cycle complete handling 
 	if( dat[6]==8 ) {
 		int y = (dat[0]<<4) + (dat[1]>>4);
@@ -442,7 +462,9 @@ void DFM::decodeDAT(uint8_t *dat)
 		int d = dat[2]>>3;
 		int h = ((dat[2]&0x07)<<2) + (dat[3]>>6);
 		int mi = (dat[3]&0x3F);
+#if DFM_DEBUG
 		Serial.printf("Date: %04d-%02d-%02d %02d:%02dz ", y, m, d, h, mi);
+#endif
 		si->sats = dat[4];
 		si->validPos |= 0x40;
 		// convert to unix time
@@ -475,9 +497,13 @@ void DFM::decodeDAT(uint8_t *dat)
 			si->vframe = dfmstate.datesec + (dfmstate.msec+500)/1000 - 315964800;
 		}
 		// All fields updated? 1=OK, 2=with errors
+#if DFM_DEBUG
 		Serial.printf("Cycle done: good is %x\n", dfmstate.good);
+#endif
 		si->temperature = get_Temp();
+#if DFM_DEBUG
 		Serial.printf("Temp: %f\n", si->temperature);
+#endif
 		dfmstate.cycledone = ((dfmstate.good&0x11F)==0x11F) ? 1 : 2; 
 		dfmstate.good = 0;
 		dfmstate.lastdat = 0;
@@ -487,13 +513,17 @@ void DFM::decodeDAT(uint8_t *dat)
 	dfmstate.good |= (1<<dat[6]);
 	switch(dat[6]) {
 	case 0:
+#if DFM_DEBUG
 		Serial.print("Packet counter: "); Serial.print(dat[3]);	
+#endif
 		dfmstate.frame = dat[3];
 		break;
 	case 1:
 		{
 		int val = (((uint16_t)dat[4])<<8) + (uint16_t)dat[5];
+#if DFM_DEBUG
 		Serial.print("UTC-msec: "); Serial.print(val);
+#endif
 		dfmstate.msec = val; 
 		//uint32_t tmp = ((uint32_t)dat[0]<<24) + ((uint32_t)dat[1]<<16) + ((uint32_t)dat[2]<<8) + ((uint32_t)dat[3]);
 		//si->sats = bitCount(tmp); 
@@ -504,8 +534,10 @@ void DFM::decodeDAT(uint8_t *dat)
 		float lat, vh;
 		lat = (int32_t)(((uint32_t)dat[0]<<24) + ((uint32_t)dat[1]<<16) + ((uint32_t)dat[2]<<8) + ((uint32_t)dat[3]));
 		vh = ((uint16_t)dat[4]<<8) + dat[5];
+#if DFM_DEBUG
 		Serial.print("GPS-lat: "); Serial.print(lat*0.0000001);
 		Serial.print(", hor-V: "); Serial.print(vh*0.01);
+#endif
 		lat = lat*0.0000001;
 		if( lat!=0 && si->lat!=0 && abs(lat-si->lat)>.25 ) killid();
 		si->lat = lat;
@@ -522,8 +554,10 @@ void DFM::decodeDAT(uint8_t *dat)
 		if( lon!=0 && si->lon!=0 && abs(lon-si->lon)>.25 ) killid();
 		si->lon = lon;
 		si->dir = dir*0.01;
+#if DFM_DEBUG
 		Serial.print("GPS-lon: "); Serial.print(si->lon);
 		Serial.print(", dir: "); Serial.print(si->dir);
+#endif
 		if(lon != 0 || dir != 0) si->validPos |= 0x22; else si->validPos &= ~0x22;
 		}
 		break;
@@ -532,8 +566,10 @@ void DFM::decodeDAT(uint8_t *dat)
 		float alt, vv;
 		alt = ((uint32_t)dat[0]<<24) + ((uint32_t)dat[1]<<16) + ((uint32_t)dat[2]<<8) + dat[3];
 		vv = (int16_t)( ((int16_t)dat[4]<<8) | dat[5] );
+#if DFM_DEBUG
 		Serial.print("GPS-height: "); Serial.print(alt*0.01);
 		Serial.print(", vv: "); Serial.print(vv*0.01);
+#endif
 		si->alt = alt*0.01;
 		si->vs = vv*0.01;
 		if(alt!=0 || vv != 0) si->validPos |= 0x0C; else si->validPos &= ~0x0C;
@@ -543,7 +579,9 @@ void DFM::decodeDAT(uint8_t *dat)
 		// handled above
 		break;
 	default:
+#if DFM_DEBUG
 		Serial.print("(?)");
+#endif
 		break;
 	}
 }
@@ -603,10 +641,12 @@ int DFM::processDFMdata(uint8_t dt) {
                                 data[rxp++] = rxbyte&0xff; // (rxbyte>>1)&0xff;
                                 if(rxp>=DFM_FRAMELEN) {
                                         rxsearching = true;
+#if DFM_DEBUG
 					//Serial.println("Got a DFM frame!");
                                 	Serial.print("[RSSI="); Serial.print(rssi);
                                 	Serial.print(" FEI="); Serial.print(fei);
                                 	Serial.print(" AFC="); Serial.print(afc); Serial.print("] ");
+#endif
                                         decodeFrameDFM(data);
 					haveNewFrame = 1;
                                 }
@@ -624,6 +664,7 @@ int DFM::receive() {
 	dfmstate.cycledone = 0;
 	while( ( millis() - t0 ) < 1300 ) {
 		uint8_t value = sx1278.readRegister(REG_IRQ_FLAGS2);	
+#if DFM_DEBUG
                 if ( bitRead(value, 7) ) {
                         Serial.println("FIFO full");
                 }
@@ -637,6 +678,7 @@ int DFM::receive() {
 			// does not make much sence? (from m10): TODO
                         // ???????  sx1278.clearIRQFlags();
                 }
+#endif
 		if(bitRead(value, 6) == 0) { // while FIFO not empty
                         byte data = sx1278.readRegister(REG_FIFO);
                         processDFMdata(data);
@@ -671,13 +713,17 @@ int DFM::decodeFrameDFM(uint8_t *data) {
 	bitsToBytes(block_dat1, byte_dat1, 13);
 	bitsToBytes(block_dat2, byte_dat2, 13);
 
+#if DFM_DEBUG
 	printRaw("CFG", 7, ret0, byte_conf);
 	printRaw("DAT", 13, ret1, byte_dat1);
 	printRaw("DAT", 13, ret2, byte_dat2);
+#endif
 	if (ret0>=0) decodeCFG(byte_conf);
 	if (ret1>=0 && ret1<=4) decodeDAT(byte_dat1);
 	if (ret2>=0 && ret2<=4) decodeDAT(byte_dat2);
+#if DFM_DEBUG
 	Serial.println("");
+#endif
 	// Consistent with autorx: If more than 4 corrected bit errors in DAT block, assume it is possibly corrupt and
 	// don't treat it as a correct frame (ttgo display shows data anyway, but it is not sent to external sites)
 	if(ret1>4 || ret2>4) return RX_ERROR;

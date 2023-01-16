@@ -19,6 +19,8 @@ extern DecoderBase *decoder;
 
 class MyProtoUser : public ProtoUser {
 public:
+  void freq(float f);
+  void type(unsigned short t);
 	void mute(bool on) {
     if (!on) bip(50,8000);
   }
@@ -26,7 +28,7 @@ public:
 		ESP.restart();
 	}
   const char *version() {
-    return "0.93";
+    return "0.94";
   }
 };
 

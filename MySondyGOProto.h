@@ -14,6 +14,8 @@
 const char *nameFromSondeType(unsigned n);
 class ProtoUser {
 public:
+  virtual void freq(float f)=0;
+  virtual void type(unsigned short t)=0;
 	virtual void mute(bool on)=0;
 	virtual void restart()=0;
 	virtual const char *version()=0;

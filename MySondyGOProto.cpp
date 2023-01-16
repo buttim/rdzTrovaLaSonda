@@ -153,20 +153,26 @@ void Proto::execCommand(String s) {
     preferences.begin(appName,false);
     preferences.putFloat("freq",freq);
     preferences.end();
-    //HACKHACK: problema in app Android
+    //HACKHACK: problema in app Android con MySOndyGO
     int n=val.indexOf("tipo=");
-    if (n<0)
-      return;
-    cmd="tipo";
-    val=val.substring(n+5);
+    if (n>=0) {
+      cmd="tipo";
+      val=val.substring(n+5);
+      sondeType=val.toInt();
+      preferences.begin(appName,false);
+      preferences.putShort("sondeType",sondeType);
+      preferences.end();
+      protoUser->type(sondeType);
+    }
+    protoUser->freq(freq);
+    return;
   }
   if (cmd=="tipo") {
     sondeType=val.toInt();
-    debugPrint("SONDETYPE: ");
-    debugPrintf("%d",sondeType);
     preferences.begin(appName,false);
     preferences.putShort("sondeType",sondeType);
     preferences.end();
+    protoUser->type(sondeType);
     return;
   }
 
