@@ -91,7 +91,7 @@ int M10M20::setup(float frequency, int /*type*/)
                if(value & 2) {
                        int32_t afc = sx1278.getAFC();
                        int16_t rssi = sx1278.getRSSI();
-                       Serial.printf("M10M20::setup: preamble: AFC is %d, RSSI is %.1f\n", afc, rssi/2.0);
+                       //!Serial.printf("M10M20::setup: preamble: AFC is %d, RSSI is %.1f\n", afc, rssi/2.0);
                        sonde.sondeList[rxtask.currentSonde].rssi = rssi;
                        sonde.sondeList[rxtask.currentSonde].afc = afc;
                        break;
@@ -486,7 +486,7 @@ void M10M20::processM10data(uint8_t dt)
 
 int M10M20::receive() {
 	unsigned long t0 = millis();
-	Serial.printf("M10M20::receive() start at %ld\n",t0);
+	//!Serial.printf("M10M20::receive() start at %ld\n",t0);
    	while( millis() - t0 < 1100 ) {
 		uint8_t value = sx1278.readRegister(REG_IRQ_FLAGS2);
 		if ( bitRead(value, 7) ) {
@@ -521,8 +521,8 @@ int M10M20::receive() {
     	}
                        int32_t afc = sx1278.getAFC();
                        int16_t rssi = sx1278.getRSSI();
-                       Serial.printf("receive: AFC is %d, RSSI is %.1f\n", afc, rssi/2.0);
-	Serial.printf("M10M20::receive() timed out\n");
+                       //!Serial.printf("receive: AFC is %d, RSSI is %.1f\n", afc, rssi/2.0);
+	//!Serial.printf("M10M20::receive() timed out\n");
     	return RX_TIMEOUT; // TODO RX_OK;
 }
 

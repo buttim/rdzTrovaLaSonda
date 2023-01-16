@@ -1,35 +1,35 @@
 #include "MySondyGOProto.h"
 
 struct intProp_t { 
-	int ord;
+	uint8_t ord;
 	const char *name;
-	int defVal;
-	void (*set)(Proto *p,int val);
+	short defVal;
+  short Proto::* field;
 	bool requiresRestart;
 };
 
 const static intProp_t intProps[]={
-	{ 0,"lcd", 0, [](Proto *p,int val) {p->lcd=val;}, true },
-	{ 1,"lcdOn", 1, [](Proto *p,int val) {p->lcdOn=val;}, true },
-	{ 2,"blu", 1, [](Proto *p,int val) {p->blu=val;}, true },
-	{ 3,"baud", 1, [](Proto *p,int val) {p->baud=val;}, true },
-	{ 4,"com", 0, [](Proto *p,int val) {p->com=val;}, true },
-	{ 5,"oled_sda", 21, [](Proto *p,int val) {p->oledSDA=val;}, true },
-	{ 6,"oled_scl", 22, [](Proto *p,int val) {p->oledSCL=val;}, true },
-	{ 7,"oled_rst", 16, [](Proto *p,int val) {p->oledRST=val;}, true },
-	{ 8,"led_pout", 25, [](Proto *p,int val) {p->ledPin=val;}, true },
-	{ 9,"buz_pin", 0, [](Proto *p,int val) {p->buzzPin=val;}, true },
-	{ 10,"rs41.rxbw", 1, [](Proto *p,int val) {p->RS41Band=val;}, false },
-	{ 11,"m20.rxbw", 7, [](Proto *p,int val) {p->M20Band=val;}, false },
-	{ 12,"m10.rxbw", 7, [](Proto *p,int val) {p->M10Band=val;}, false },
-	{ 13,"pilot.rxbw", 7, [](Proto *p,int val) {p->PilotBand=val;}, false },
-	{ 14,"dfm.rxbw", 6, [](Proto *p,int val) {p->DFMBand=val;}, false },
-	{ 15,"aprsName", 0, [](Proto *p,int val) {p->nameType=val;}, false },
-	{ 16,"freqofs", 0, [](Proto *p,int val) {p->freqOffs=val;}, false },
-	{ 17,"battery", 35, [](Proto *p,int val) {p->battPin=val;}, true },
-	{ 18,"vBatMin", 2950, [](Proto *p,int val) {p->battMin=val;}, false },
-	{ 19,"vBatMax", 4200, [](Proto *p,int val) {p->battMax=val;}, false },
-	{ 20,"vBatType", 1, [](Proto *p,int val) {p->battType=val;}, false }
+	{ 0,"lcd",         0, &Proto::lcd,       true  },
+	{ 1,"lcdOn",       1, &Proto::lcdOn,     true  },
+	{ 2,"blu",         1, &Proto::blu,       true  },
+	{ 3,"baud",        1, &Proto::baud,      true  },
+	{ 4,"com",         0, &Proto::com,       true  },
+	{ 5,"oled_sda",   21, &Proto::oledSDA,   true  },
+	{ 6,"oled_scl",   22, &Proto::oledSCL,   true  },
+	{ 7,"oled_rst",   16, &Proto::oledRST,   true  },
+	{ 8,"led_pout",   25, &Proto::ledPin,    true  },
+	{ 9,"buz_pin",     0, &Proto::buzzPin,   true  },
+	{ 10,"rs41.rxbw",  1, &Proto::RS41Band,  false },
+	{ 11,"m20.rxbw",   7, &Proto::M20Band,   false },
+	{ 12,"m10.rxbw",   7, &Proto::M10Band,   false },
+	{ 13,"pilot.rxbw", 7, &Proto::PilotBand, false },
+	{ 14,"dfm.rxbw",   6, &Proto::DFMBand,   false },
+	{ 15,"aprsName",   0, &Proto::nameType,  false },
+	{ 16,"freqofs",    0, &Proto::freqOffs,  false },
+	{ 17,"battery",   35, &Proto::battPin,   true  },
+	{ 18,"vBatMin", 2950, &Proto::battMin,   false },
+	{ 19,"vBatMax", 4200, &Proto::battMax,   false },
+	{ 20,"vBatType",   1, &Proto::battType,  false }
 };
 
 const char Proto::appName[]="rdzTrovaLaSonda"; //max length 15
@@ -46,12 +46,6 @@ static float bandFromId(unsigned id) {
 	return 1000*bands[id];
 }
 
-/*static int idFromBand(float band) {
-	for (unsigned i=0;i<sizeof bands/sizeof(*bands);i++)
-		if (band==bands[i]) return i;
-	return 0;
-}*/
-
 int sondeTypeFromName(String s) {
 	for (unsigned i=0;i<sizeof sondeTypes/sizeof(*sondeTypes);i++)
 		if (s==sondeTypes[i])
@@ -67,27 +61,27 @@ const char *nameFromSondeType(unsigned n) {
 void Proto::setDefaults() {
   preferences.begin(appName,false);
 	for (unsigned i=0;i<sizeof intProps/sizeof(*intProps);i++) {
-		intProps[i].set(this,intProps[i].defVal);
-    preferences.putInt(intProps[i].name,intProps[i].defVal);
+    this->*intProps[i].field=intProps[i].defVal;
+    preferences.putShort(intProps[i].name,intProps[i].defVal);
 	}
 	strcpy(callsign,"MYCALLL");
   preferences.putString("callsign",callsign);
 	freq=403.0;
 	sondeType=1;
   preferences.putFloat("freq",freq);
-  preferences.putInt("sondeType",sondeType);
+  preferences.putShort("sondeType",sondeType);
   preferences.end();
 }
 
 void Proto::loadProps() {
   preferences.begin(appName,true);
 	for (unsigned i=0;i<sizeof intProps/sizeof(*intProps);i++) {
-		int val=preferences.getInt(intProps[i].name,intProps[i].defVal);
-		intProps[i].set(this,val);
+		int val=preferences.getShort(intProps[i].name,intProps[i].defVal);
+    this->*intProps[i].field=val;
 	}
   preferences.getString("callsign",callsign,sizeof callsign);
   freq=preferences.getFloat("freq",403.0);
-  sondeType=preferences.getInt("sondeType",0);
+  sondeType=preferences.getShort("sondeType",0);
   preferences.end();
 	if (freq!=freq || freq==0) //not a number
 		setDefaults();
@@ -141,16 +135,17 @@ void Proto::execCommand(String s) {
     return;
   }
   else if (cmd=="ota") {
+    otaRunning=true;
     debugPrintf("INIZIO OTA %s\n",val.c_str());
     const esp_partition_t *running = esp_ota_get_running_partition();
     const esp_partition_t *next = esp_ota_get_next_update_partition(running);
     otaLength=val.toInt();
     esp_err_t err=esp_ota_begin(next,otaLength,&handleOta);
     if (err!=ESP_OK) {
-      Serial.printf("Errore esp_ota_begin %d\n",err);
+      debugPrintf("Errore esp_ota_begin %d\n",err);
+      otaErr=err;
       return;
     }
-    otaRunning=true;
     return;
   }
   if (cmd=="f") {
@@ -170,7 +165,7 @@ void Proto::execCommand(String s) {
     debugPrint("SONDETYPE: ");
     debugPrintf("%d",sondeType);
     preferences.begin(appName,false);
-    preferences.putInt("sondeType",sondeType);
+    preferences.putShort("sondeType",sondeType);
     preferences.end();
     return;
   }
@@ -178,9 +173,9 @@ void Proto::execCommand(String s) {
   for (unsigned  i=0;i<sizeof intProps/sizeof(*intProps);i++)
     if (cmd==intProps[i].name) {
       int v=val.toInt();
-      intProps[i].set(this,v);
+      this->*intProps[i].field=v;
       preferences.begin(appName,false);
-      preferences.putInt(intProps[i].name,v);
+      preferences.putShort(intProps[i].name,v);
       preferences.end();
       if (intProps[i].requiresRestart) protoUser->restart();
       return;
@@ -204,7 +199,10 @@ void Proto::onData(const uint8_t *buffer, size_t size) {
     esp_err_t err=esp_ota_write(handleOta,buffer,size);
     if (err!=ESP_OK) {
       debugPrintf("Errore esp_ota_write %d\n");
+      otaErr=err;
+      return;
     }
+    debugPrintf("progress: %d\n",otaProgress);
     otaProgress+=size;
     if (otaProgress==otaLength) {
       esp_ota_end(handleOta);
@@ -273,6 +271,9 @@ void Proto::init(ProtoUser *protoUser,BluetoothSerial *serial) {
 }
 
 void Proto::loop(float vBatt,bool sondePresent,bool posOk,const char *id,float lat,float lon,float alt,float vel,int rssi) {
+  if (otaRunning) {
+    return;
+  }
   if (!sondePresent || id[0]==0) {
     debugPrintf("0/%s/%.3f/%.2f/%d/%d/%d/%s/o\r\n",
       nameFromSondeType(sondeType),freq,rssi/2.0,map(vBatt,battMin,battMax,0,100),(int)vBatt,mute?1:0,protoUser->version());

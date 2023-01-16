@@ -3,11 +3,6 @@
 #include <Preferences.h>
 #include "MySondyGOProto.h"
 
-/*#define LED         25
-#define BUZZER      4
-#define SDA         21
-#define SCL         22*/
-
 #define RADIO_SCLK_PIN               5
 #define RADIO_MISO_PIN              19
 #define RADIO_MOSI_PIN              27
@@ -23,6 +18,7 @@ extern void bip(int duration=100,int freq=880);
 extern DecoderBase *decoder;
 
 class MyProtoUser : public ProtoUser {
+public:
 	void mute(bool on) {
     if (!on) bip(50,8000);
   }
@@ -30,7 +26,7 @@ class MyProtoUser : public ProtoUser {
 		ESP.restart();
 	}
   const char *version() {
-    return "0.91";
+    return "0.93";
   }
 };
 

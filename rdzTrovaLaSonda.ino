@@ -14,25 +14,28 @@
 #include "DFM.h"
 #include "MySondyGOProto.h"
 
-const char *version_name = "rdzTTGOsonde";
-const char *version_id = "devel20221217";
-
 OLEDDisplay *display;
-SemaphoreHandle_t sem;
-SemaphoreHandle_t semSX1278;
+SemaphoreHandle_t sem, semSX1278;
 TimerHandle_t tBuzzOff, tLedOff;
 DecoderBase *decoder=&rs41;
 Proto proto;
 MyProtoUser myProtoUser;
 BluetoothSerial ESP_BT;
 
-const int bt_width=13,bt_height=25;
+const int bt_width=8,bt_height=15;
 static uint8_t bt_bits[] = {
-  0x00, 0x00, 0x40, 0x00, 0xC0, 0x00, 0xC0, 0x01, 0xC0, 0x03, 0xC0, 0x07, 
-  0xC2, 0x0E, 0xC7, 0x1C, 0xCE, 0x0E, 0xDC, 0x07, 0xF8, 0x03, 0xF0, 0x01, 
-  0xE0, 0x00, 0xF0, 0x01, 0xF8, 0x03, 0xDC, 0x07, 0xCE, 0x0E, 0xC7, 0x1C, 
-  0xC2, 0x0E, 0xC0, 0x07, 0xC0, 0x03, 0xC0, 0x01, 0xC0, 0x00, 0x40, 0x00, 
-  0x00, 0x00
+  0x08, 0x18, 0x38, 0x69, 0xCB, 0x6E, 0x3C, 0x18, 0x3C, 0x6E, 0xCB, 0x69, 
+  0x38, 0x18, 0x08
+};
+const int mute_width=5,mute_height=12;
+static uint8_t mute_bits[] = {
+  0x00, 0x10, 0x18, 0x1C, 0x1F, 0x1F, 0x1F, 0x1F, 0x1F, 0x1C, 0x18, 0x10 
+};
+const int speaker_width=11,speaker_height=13;
+static uint8_t speaker_bits[] = {  
+  0x80, 0x00, 0x10, 0x01, 0x58, 0x02, 0x9C, 0x04, 0x1F, 0x05, 0x5F, 0x05, 
+  0x5F, 0x05, 0x5F, 0x05, 0x1F, 0x05, 0x9C, 0x04, 0x58, 0x02, 0x10, 0x01, 
+  0x80, 0x00
 };
 
 DecoderBase *getDecoder(unsigned sondeType) {
@@ -72,7 +75,7 @@ void flash(int duration) {
   xTimerStart(tLedOff,0);
 }
 
-void initDisplay(const char *ver) {
+void initDisplay() {
   if (proto.lcd==0)
     display=new SSD1306(0x3c,proto.oledSDA,proto.oledSCL);
   else
@@ -82,20 +85,22 @@ void initDisplay(const char *ver) {
 
   display->setFont(ArialMT_Plain_16);
   display->setTextAlignment(TEXT_ALIGN_CENTER);
-  display->drawString(64,24,"rdzTrovaLaSonda");
-  display->drawString(64,40,ver);
+  display->drawString(64,20,"rdzTrovaLaSonda");
+  display->drawString(64,40,myProtoUser.version());
   display->display();
 }
 
-#define BATT_W 18
-#define BATT_H 39
-#define BATT_X 108
-#define BATT_Y 24
-#define BATT_CORNER_RADIUS 5
-#define BATT_PLUS_W 10
-#define BATT_PLUS_H 4
-#define BT_X 90
-#define BT_Y 34
+#define BATT_W 14
+#define BATT_H 30
+#define BATT_X 113
+#define BATT_Y 28
+#define BATT_CORNER_RADIUS 4
+#define BATT_PLUS_W 6
+#define BATT_PLUS_H 3
+#define BT_X 50
+#define BT_Y 0
+#define SPEAKER_X 94
+#define SPEAKER_Y 44
 
 void drawBattery(int level) {
   display->fillRect(BATT_X+BATT_W/2-BATT_PLUS_W/2,BATT_Y,BATT_PLUS_W,BATT_PLUS_H-1);
@@ -113,22 +118,24 @@ void drawBattery(int level) {
     display->setFont(ArialMT_Plain_24);
     display->drawString(BATT_X+BATT_W/2,BATT_Y+BATT_PLUS_H+(BATT_H-BATT_PLUS_H)/2,"?");
   }
-  else
-  {
+  else {
     int h=BATT_H-BATT_PLUS_H-4;
     if (level>100) level=100;
     display->fillRect(BATT_X+2,BATT_Y+BATT_PLUS_H+2+h*(100-level)/100,BATT_W-3,h*level/100);
   }
 }
 
-void updateDisplay(float vBatt) {
+void updateDisplay(float vBatt,int rssi) {
   char s[1+3+1+5+1];  //sign,integer,dot,decimals,null
-  float f;
 
   display->clear();
-  if (ESP_BT.connected()) {
+  display->setColor(WHITE);
+  if (ESP_BT.connected())
     display->drawXbm(BT_X,BT_Y,bt_width,bt_height,bt_bits);
-  }
+  if (proto.mute)
+    display->drawXbm(SPEAKER_X,SPEAKER_Y,mute_width,mute_height,mute_bits);
+  else
+    display->drawXbm(SPEAKER_X,SPEAKER_Y,speaker_width,speaker_height,speaker_bits);
   display->setFont(ArialMT_Plain_16);
   display->setTextAlignment(TEXT_ALIGN_LEFT);
   display->drawString(0,0,nameFromSondeType(proto.sondeType));
@@ -139,23 +146,28 @@ void updateDisplay(float vBatt) {
   display->drawString(126,0,s);
   display->setFont(ArialMT_Plain_16);
   display->setTextAlignment(TEXT_ALIGN_LEFT);
-  display->drawString(0,18,sonde.si()->d.ser);
-  display->drawString(1,18,sonde.si()->d.ser);
-  f=sonde.si()->d.lat;
+  char *ser=(char*)sonde.si()->d.ser;
+  display->drawString(0,18,ser);
+  display->drawString(1,18,ser);
+
+  float f=sonde.si()->d.lat;
   if (isnan(f)) f=0;
-  snprintf(s,sizeof s,"%+10.5f",f);
-  display->drawString(0,33,s);
+  snprintf(s,sizeof s,"%+.5f",f);
+  display->setTextAlignment(TEXT_ALIGN_RIGHT);
+  display->drawString(84,33,s);
   f=sonde.si()->d.lon;
   if (isnan(f)) f=0;
-  snprintf(s,sizeof s,"%+10.5f",f);
-  display->drawString(0,49,s);
+  snprintf(s,sizeof s,"%+.5f",f);
+  display->drawString(84,49,s);
   drawBattery(map(vBatt,proto.battMin,proto.battMax,0,100));
+  display->setColor(INVERSE);
+  display->fillRect(0,0,128-rssi/2-1,8);
   display->display();
 }
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("*!*VIA*!*");
+  Serial.println("*!*via*!*");
   sem=xSemaphoreCreateBinary();
   semSX1278=xSemaphoreCreateBinary();
   xSemaphoreGive(semSX1278);
@@ -203,7 +215,7 @@ void setup() {
 
   bip(250,2000);
 
-  initDisplay(appDesc->time);
+  initDisplay();
   
   sx1278.setup(semSX1278);
   decoder=getDecoder(proto.sondeType);
@@ -215,9 +227,17 @@ void loop() {
     display->clear();
     display->setFont(ArialMT_Plain_24);
     display->setTextAlignment(TEXT_ALIGN_CENTER_BOTH);
-    display->drawString(64,32,"UPDATE");
-    if (proto.otaLength!=0)
-      display->drawProgressBar(0, 50, 125, 10, proto.otaProgress*100/proto.otaLength);
+    if (proto.otaErr==0) {
+      display->drawString(64,32,"UPDATE");
+      if (proto.otaLength!=0)
+        display->drawProgressBar(0, 50, 125, 10, proto.otaProgress*100/proto.otaLength);
+    }
+    else {
+      char s[12];
+      display->drawString(64,32,"ERROR");      
+      display->drawStringf(64,45,s,String("%"),proto.otaErr);      
+    }
+
     display->display();
     return;
   }
@@ -229,6 +249,7 @@ void loop() {
     flash(10);
   }
   float vBatt=analogRead(proto.battPin)/4096.0*2*3.3*1100;
-  updateDisplay(vBatt);
-  proto.loop(vBatt,res==0,!isnan(si->d.lat) && !si->d.lat==0,si->d.ser,si->d.lat,si->d.lon,si->d.alt,si->d.hs,si->rssi);
+  int rssi=sx1278.getRSSI();
+  updateDisplay(vBatt,rssi);
+  proto.loop(vBatt,res==0,!isnan(si->d.lat) && !si->d.lat==0,si->d.ser,si->d.lat,si->d.lon,si->d.alt,si->d.hs,rssi);
 }

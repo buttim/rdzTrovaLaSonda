@@ -27,7 +27,6 @@ class Proto {
 	status_t status;
 	String sBuf="";
 	unsigned long tLastBTMessage=0;
-	int incoming;
   Preferences preferences;
   esp_ota_handle_t handleOta;
 	
@@ -39,9 +38,8 @@ class Proto {
 	void sondePos(float vBatt,String id,float lat,float lon,float alt,float vel,int rssi);
 	void sondeNoPos(float vBatt,String id,int rssi);
 public:
-	bool mute=false;
-  bool otaRunning=false;
-  int otaProgress=0, otaLength=0;
+	bool mute=false, otaRunning=false;
+  int otaErr=0, otaProgress=0, otaLength=0;
 	char callsign[CALLSIGN_LENGTH+1]="MYCALL";
 	float freq;
 	short sondeType,lcd,lcdOn,blu,baud,com,oledSDA,oledSCL,oledRST,
