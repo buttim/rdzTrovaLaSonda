@@ -54,8 +54,12 @@ static uint8_t speaker_bits[] = {
 };
 
 DecoderBase *getDecoder(unsigned short sondeType) {
-  DecoderBase *decoders[]={&rs41,&m10m20,&m10m20,&rs41,&dfm};
+  DecoderBase *decoders[]={&rs41,&m10m20,&m10m20,&dfm,&dfm};
+  short subTypes[]={0,2,1,7,10};
   sondeType=constrain(sondeType,1,sizeof decoders/sizeof(*decoders));
+  int subType=subTypes[sondeType-1];
+  decoders[sondeType-1]->setup(proto.freq*1E6,subType);
+  Serial.printf("getDecoder: %d %d------------------\n",sondeType,subType);
   return decoders[sondeType-1];
 }
 
@@ -245,7 +249,7 @@ void setup() {
   
   sx1278.setup(semSX1278);
   decoder=getDecoder(proto.sondeType);
-  decoder->setup(proto.freq*1E6);
+  
 }
 
 void loop() {
@@ -267,15 +271,15 @@ void loop() {
     display->display();
     return;
   }
-  SondeInfo *si=sonde.si();
   int res=decoder->receive();
-  //Serial.printf("RX:%d,lat:%f,lon:%f,ser:%s\n",res,si->d.lat,si->d.lon,si->d.ser);
   if (res==0) {
-     if (!proto.mute) bip(100,8000);
+    if (!proto.mute) bip(100,8000);
     flash(10);
   }
   float vBatt=analogRead(proto.battPin)/4096.0*2*3.3*1100;
   int rssi=sx1278.getRSSI();
+  SondeInfo *si=sonde.si();
+  //Serial.printf("RX:%d,lat:%f,lon:%f,ser:%s\n",res,si->d.lat,si->d.lon,si->d.ser);
   updateDisplay(vBatt,rssi);
-  proto.loop(vBatt,res==0,!isnan(si->d.lat) && !si->d.lat==0,si->d.ser,si->d.lat,si->d.lon,si->d.alt,si->d.hs,rssi);
+  proto.loop(vBatt,res==0,!isnan(si->d.lat) && si->d.lat!=0,si->d.ser,si->d.lat,si->d.lon,si->d.alt,si->d.hs,rssi);
 }

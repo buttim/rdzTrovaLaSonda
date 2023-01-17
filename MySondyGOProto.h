@@ -7,10 +7,19 @@
 #include <esp_partition.h>
 #include <esp_ota_ops.h>
 
+#define DEBUG_MYSONDYGOPROTO 1
 #define CALLSIGN_LENGTH 8
+
+#ifdef DEBUG_MYSONDYGOPROTO
 #define debugPrintf(...) fprintf (stderr, __VA_ARGS__)
 #define debugPrint(s) fputs(s,stderr)
 #define debugPrintln(s) { fputs(s,stderr); fputc('\n',stderr); }
+#else
+#define debugPrintf(...)
+#define debugPrint(s)
+#define debugPrintln(s)
+#endif
+
 const char *nameFromSondeType(unsigned n);
 class ProtoUser {
 public:

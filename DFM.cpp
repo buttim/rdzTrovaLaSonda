@@ -287,14 +287,18 @@ void DFM::finddfname(uint8_t *b)
 							return;
 						}
 						dfmstate.lastfrcnt = 0;
+#if DFM_DEBUG
 						Serial.print(" NOT NUMERIC SERIAL");
+#endif
                      			}
                   			//anonym->idtime = osic_time();
        			         } else {
+#if DFM_DEBUG
 					Serial.print(" MAXCHCNT/SECLVL:");
 					Serial.print(dfmstate.lastfrcnt);
 					Serial.print("/");
 					Serial.print(thres);
+#endif
 				}
 			} else {
                			dfmstate.lastfrid = v; /* not stable ser */

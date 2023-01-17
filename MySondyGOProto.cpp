@@ -280,7 +280,7 @@ void Proto::loop(float vBatt,bool sondePresent,bool posOk,const char *id,float l
   if (otaRunning) {
     return;
   }
-  if (!sondePresent || id[0]==0) {
+  if (!sondePresent /*|| id[0]==0*/) {
     debugPrintf("0/%s/%.3f/%.2f/%d/%d/%d/%s/o\r\n",
       nameFromSondeType(sondeType),freq,rssi/2.0,map(vBatt,battMin,battMax,0,100),(int)vBatt,mute?1:0,protoUser->version());
     serial->printf("0/%s/%.3f/%.2f/%d/%d/%d/%s/o\r\n",
