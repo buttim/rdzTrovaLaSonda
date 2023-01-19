@@ -64,5 +64,4 @@ public:
 	void loop(float vBatt,bool sondePresent,bool posOk,const char *id,float lat,float lon,float alt,float vel,
     bool bk,int bkTime,int rssi,int afc);
 };
-
 #endif

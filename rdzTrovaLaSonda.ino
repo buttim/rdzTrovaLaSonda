@@ -16,7 +16,7 @@
 #include "DFM.h"
 #include "MySondyGOProto.h"
 
-const char *version="0.97";
+const char *version="0.98";
 OLEDDisplay *display;
 SemaphoreHandle_t sem, semSX1278;
 Ticker tickBuzzOff, tickLedOff;
@@ -313,7 +313,7 @@ void loop() {
   else
     vBatt=analogRead(proto.battPin)/4096.0*2*3.3*1100;
   int rssi=sx1278.getRSSI();
-  int afc=proto.freqOffs+sx1278.getAFC();//TODO:
+  int afc=proto.freqOffs+sx1278.getAFC();
   SondeInfo *si=sonde.si();
   //Serial.printf("RX:%d,lat:%f,lon:%f,ser:%s\n",res,si->d.lat,si->d.lon,si->d.ser);
   updateDisplay(vBatt,rssi);

@@ -245,7 +245,6 @@ void Proto::onData(const uint8_t *buffer, size_t size) {
 void Proto::sondePos(float vBatt,String id,float lat,float lon,float alt,float vel,
     bool bk,int bkTime,int rssi,int afc) {
   int battPercent=constrain(map(vBatt,battMin,battMax,0,100),0,100);
-  //TODO:bk bkTime
 	debugPrintf("1/%s/%.3f/%s/%.6f/%.6f/%.1f/%.1f/%.1f/%d/%d/%d/%d/%d/%d/0/0/0/%s/o\r\n",
 		nameFromSondeType(sondeType),freq,
 		id.c_str(),lat,lon,alt,vel,-rssi/2.0,
