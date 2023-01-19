@@ -20,7 +20,9 @@
 #define debugPrintln(s)
 #endif
 
+int bandFromId(unsigned id);
 const char *nameFromSondeType(unsigned n);
+
 class ProtoUser {
 public:
   virtual void freq(float f)=0;
@@ -46,7 +48,7 @@ class Proto {
 	void execCommand(String s);
 	void execCommands(String s);
 	void setDefaults();
-	void sondePos(float vBatt,String id,float lat,float lon,float alt,float vel,int rssi);
+	void sondePos(float vBatt,String id,float lat,float lon,float alt,float vel,bool bk,int bkTime,int rssi,int afc);
 	void sondeNoPos(float vBatt,String id,int rssi);
 public:
 	bool mute=false, otaRunning=false;
@@ -59,7 +61,8 @@ public:
 
 	void init(ProtoUser *protoUser,BluetoothSerial *serial);
 	void onData(const uint8_t *buffer, size_t size);
-	void loop(float vBatt,bool sondePresent,bool posOk,const char *id,float lat,float lon,float alt,float vel,int rssi);
+	void loop(float vBatt,bool sondePresent,bool posOk,const char *id,float lat,float lon,float alt,float vel,
+    bool bk,int bkTime,int rssi,int afc);
 };
 
 #endif

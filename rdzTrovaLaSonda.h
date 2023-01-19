@@ -3,18 +3,18 @@
 #include <Preferences.h>
 #include "MySondyGOProto.h"
 
-#define RADIO_SCLK_PIN               5
-#define RADIO_MISO_PIN              19
-#define RADIO_MOSI_PIN              27
-#define RADIO_CS_PIN                18
-#define RADIO_DIO0_PIN              26
-#define RADIO_DIO1_PIN              33
-#define RADIO_DIO2_PIN              32
-#define RADIO_RST_PIN               23
-#define RADIO_BUSY_PIN              32
+const int RADIO_SCLK_PIN=5,
+  RADIO_MISO_PIN=19,
+  RADIO_MOSI_PIN=27,
+  RADIO_CS_PIN  =18,
+  RADIO_DIO0_PIN=26,
+  RADIO_DIO1_PIN=33,
+  RADIO_DIO2_PIN=32,
+  RADIO_RST_PIN =23,
+  RADIO_BUSY_PIN=32;
 
 extern void bip(int duration=100,int freq=880);
-
+extern const char *version;
 extern DecoderBase *decoder;
 
 class MyProtoUser : public ProtoUser {
@@ -28,7 +28,7 @@ public:
 		ESP.restart();
 	}
   const char *version() {
-    return "0.94";
+    return ::version;
   }
 };
 
