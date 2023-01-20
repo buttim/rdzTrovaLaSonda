@@ -16,7 +16,7 @@
 #include "DFM.h"
 #include "MySondyGOProto.h"
 
-const char *version="0.98";
+const char *version="0.10";
 OLEDDisplay *display;
 SemaphoreHandle_t sem, semSX1278;
 Ticker tickBuzzOff, tickLedOff;
@@ -83,17 +83,17 @@ void MyProtoUser::type(unsigned short t) {
 
 bool initBluetooth() {
   if (!btStart()) {
-    Serial.println("Failed to initialize controller");
+    debugPrintln("Failed to initialize controller");
     return false;
   }
  
   if (esp_bluedroid_init() != ESP_OK) {
-    Serial.println("Failed to initialize bluedroid");
+    debugPrintln("Failed to initialize bluedroid");
     return false;
   }
  
   if (esp_bluedroid_enable() != ESP_OK) {
-    Serial.println("Failed to enable bluedroid");
+    debugPrintln("Failed to enable bluedroid");
     return false;
   }
   return true;
@@ -248,7 +248,6 @@ bool initPMU() {
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("*!*via*!*");
 
   if (initPMU()) isTbeam=true;
 
@@ -261,16 +260,11 @@ void setup() {
   const esp_partition_t *running=esp_ota_get_running_partition();
   esp_ota_img_states_t ota_state=ESP_OTA_IMG_UNDEFINED;
   esp_ota_get_state_partition(running, &ota_state);
-  Serial.printf("running:\t%d [%s] state=%d\n",running->size,running->label,ota_state);
 
   if (ota_state==ESP_OTA_IMG_PENDING_VERIFY) {
-    Serial.println("Confermo partizione OK");
+    debugPrintln("Confermo partizione OK");
     esp_ota_mark_app_valid_cancel_rollback();
   }
-
-  const esp_app_desc_t *appDesc=esp_ota_get_app_description();
-  Serial.printf("app: [%s,%s] (%s  %s) magic: %08X----------------\n",
-    appDesc->project_name,appDesc->version,appDesc->date,appDesc->time,appDesc->magic_word);
 
   initBluetooth();
   const uint8_t* add=esp_bt_dev_get_address();
@@ -303,19 +297,19 @@ void loop() {
     return;
   }
   int res=decoder->receive();
-  if (res==0) {
-    if (!proto.mute) bip(100,8000);
-    flash(10);
-  }
   float vBatt;
   if (isTbeam)
     vBatt=PMU.getBattVoltage();
   else
     vBatt=analogRead(proto.battPin)/4096.0*2*3.3*1100;
-  int rssi=sx1278.getRSSI();
-  int afc=proto.freqOffs+sx1278.getAFC();
   SondeInfo *si=sonde.si();
-  //Serial.printf("RX:%d,lat:%f,lon:%f,ser:%s\n",res,si->d.lat,si->d.lon,si->d.ser);
+  int rssi=si->rssi;
+  int afc=proto.freqOffs+sx1278.getAFC();
+  //debugPrintf("RX:%d,lat:%f,lon:%f,ser:%s\n",res,si->d.lat,si->d.lon,si->d.ser);
+  if (res==0) {
+    if (!proto.mute) bip(150,map(si->d.alt,0,40000,150,9000));
+    flash(10);
+  }
   updateDisplay(vBatt,rssi);
   proto.loop(vBatt,res==0,!isnan(si->d.lat) && si->d.lat!=0,si->d.ser,
     si->d.lat,si->d.lon,si->d.alt,si->d.hs,

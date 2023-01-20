@@ -11,12 +11,10 @@
 #define CALLSIGN_LENGTH 8
 
 #ifdef DEBUG_MYSONDYGOPROTO
-#define debugPrintf(...) fprintf (stderr, __VA_ARGS__)
-#define debugPrint(s) fputs(s,stderr)
-#define debugPrintln(s) { fputs(s,stderr); fputc('\n',stderr); }
+#define debugPrintf(...) { fputs("9/",stderr); fprintf (stderr, __VA_ARGS__); }
+#define debugPrintln(s) { fputs("9/",stderr); fputs(s,stderr); fputc('\n',stderr); }
 #else
 #define debugPrintf(...)
-#define debugPrint(s)
 #define debugPrintln(s)
 #endif
 
